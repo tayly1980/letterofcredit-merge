@@ -1,44 +1,90 @@
 def build_generation_prompt(sequence):
-    lines = []
+    prompt = (
+        "You are a SWIFT trade finance expert. Generate the following SWIFT messages in the order provided.\n\n"
+        "Instructions for all messages:\n"
+        "- Start with the SWIFT message type and a short description (e.g., 'MT700 – Letter of Credit')\n"
+        "- For each field:\n"
+        "  - Use the SWIFT field tag (e.g., :20:) followed by a short label (e.g., ':20: Documentary Credit Number')\n"
+        "  - On the next line, provide a realistic, fictitious value\n"
+        "  - Leave a blank line between fields\n"
+        "- Do not use markdown, summaries, or explanations\n"
+        "- Use the same value for :20: across all messages (e.g., LC2024ABC001)\n"
+        "- For MT707 and MT799:\n"
+        "  - Include :21: as a fictitious LC advising bank reference (e.g., ADVREF789123)\n"
+        "  - Generate this :21: once and reuse it in all MT707/MT799 messages\n"
+        "- After each message, add a line of 50 dashes to separate it:\n"
+        "  --------------------------------------------------\n\n"
+    )
 
-    lines.append("Generate synthetic SWIFT messages based on the sequence below.")
-    lines.append("Each message must:")
-    lines.append("• Begin with the correct heading (see below)")
-    lines.append("• Use valid SWIFT field tags (e.g., :20:, :23B:, etc.)")
-    lines.append("• Contain fictitious but realistic bank names, BICs, company names, and addresses")
-    lines.append("• Format corrections/amendments logically (MT707/MT799 should refer back to earlier messages)")
-    lines.append("• Always use MSC00X (e.g., MSC001) in message references — never CORR00X")
-    lines.append("• Include a short title line above each message, exactly as described")
-    lines.append("")
+    has_advising_ref = False
 
-    for index, msg_type in enumerate(sequence):
+    for msg_type in sequence:
         if msg_type == "MT700":
-            lines.append("### MT700 – Letter of Credit")
-            lines.append(
-                "Include typical fields like :20:, :23B:, :30T:, :40A:, :50:, :59:, :32B:, :41D:, :45A:, :46A:, :71B:, :78:, :57D:, :72:. "
-                "Use realistic values for LC numbers, currency, amount, company names, and ports."
+            prompt += (
+                "MT700 – Letter of Credit\n"
+                "Generate a complete MT700 message with appropriate SWIFT fields.\n"
+                "Assign a consistent :20: reference (e.g., LC2024ABC001).\n"
+                "Include short descriptions for all fields, such as:\n"
+                "- :20: Documentary Credit Number\n"
+                "- :32B: Currency and Amount\n"
+                "- :50: Applicant\n"
+                "- :59: Beneficiary\n"
+                "- :31D: Date and Place of Expiry\n"
+                "- :45A: Description of Goods\n"
+                "- :46A: Documents Required\n"
+                "- :71B: Charges\n"
+                "- :78: Instructions to Bank\n"
+                "- Add a separator line after the message:\n"
+                "  --------------------------------------------------\n\n"
             )
+
         elif msg_type == "MT707":
-            lines.append("### MT707 – Amendment to Documentary Credit")
-            lines.append(
-                "Include fields like :20:, :21:, :30:, :45B:, :46A:, :47A:, and :79:. "
-                "Clearly indicate what field(s) are being amended. Use logical and traceable changes from previous MT700 values."
+            prompt += (
+                "MT707 – Amendment\n"
+                "Generate an MT707 that amends the MT700.\n"
+                "Use the same :20: reference as in the MT700.\n"
             )
+            if not has_advising_ref:
+                prompt += (
+                    "Generate :21: as a fictitious LC advising bank reference (e.g., ADVREF789123).\n"
+                )
+                has_advising_ref = True
+            else:
+                prompt += (
+                    "Use the same :21: advising bank reference as generated earlier.\n"
+                )
+            prompt += (
+                "Amend at least 2–3 fields.\n"
+                "Include short descriptions for all used fields.\n"
+                "Add a separator line after the message:\n"
+                "  --------------------------------------------------\n\n"
+            )
+
         elif msg_type == "MT799":
-            lines.append("### MT799 – Free Format Message")
-            lines.append(
-                "Only use :79: field. Describe corrections, additions, or deletions to earlier MT700/MT707/MT799 messages. "
-                "Format the reference as MSC00X (e.g., MSC001, MSC002). "
-                "Message must clearly refer to which previous field(s) are being corrected or clarified."
+            prompt += (
+                "MT799 – Free Format Message\n"
+                "Generate a correction or clarification related to the MT700 or its amendment.\n"
+                "Use the same :20: reference as in the MT700.\n"
             )
-        lines.append("")  # Spacer between message blocks
+            if not has_advising_ref:
+                prompt += (
+                    "Generate :21: as a fictitious LC advising bank reference (e.g., ADVREF789123).\n"
+                )
+                has_advising_ref = True
+            else:
+                prompt += (
+                    "Use the same :21: advising bank reference as generated earlier.\n"
+                )
+            prompt += (
+                "Include :79: with a clear correction or explanation.\n"
+                "Include short descriptions for all used fields.\n"
+                "Add a separator line after the message:\n"
+                "  --------------------------------------------------\n\n"
+            )
 
-    # Reinforce correct formatting
-    lines.append("Important:")
-    lines.append("• Label each message with its proper heading: MT700 – Letter of Credit, MT707 – Amendment..., MT799 – Free Format Message.")
-    lines.append("• Include all SWIFT field tags with colons.")
-    lines.append("• Use fully fictitious banks, BICs, and company names.")
-    lines.append("• Do not use real organizations or locations unless they are generic placeholders (e.g., City, Country).")
+    prompt += (
+        "Only output the messages listed above, in the given order. "
+        "Do not include markdown formatting, bullet points, or any extra commentary."
+    )
 
-    return "\n".join(lines)
-
+    return prompt

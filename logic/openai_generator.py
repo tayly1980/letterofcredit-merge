@@ -1,19 +1,19 @@
 # logic/openai_generator.py
 
-import openai
 import os
 from dotenv import load_dotenv
+from openai import OpenAI
 
-# Load OpenAI API key from .env file
+# Load environment variables
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def generate_synthetic_messages(prompt):
+def generate_synthetic_messages(prompt: str) -> str:
     """
     Uses gpt-3.5-turbo to generate synthetic SWIFT messages from a prompt.
     """
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a trade finance expert."},
@@ -22,15 +22,16 @@ def generate_synthetic_messages(prompt):
             temperature=0.4,
             max_tokens=3000
         )
-        return response['choices'][0]['message']['content']
+        return response.choices[0].message.content
     except Exception as e:
         return f"❌ Error generating messages: {str(e)}"
-def detect_message_type(text):
+
+def detect_message_type(text: str) -> str:
     """
-    Classifies SWIFT message text as MT700 / MT707 / MT799 using GPT-4o.
+    Classifies a SWIFT message as MT700 / MT707 / MT799 using GPT-4o.
     """
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": "You are an expert in SWIFT messaging."},
@@ -47,7 +48,6 @@ Message:
             temperature=0,
             max_tokens=10
         )
-        return response['choices'][0]['message']['content'].strip()
+        return response.choices[0].message.content.strip()
     except Exception as e:
         return f"❌ Error: {str(e)}"
-

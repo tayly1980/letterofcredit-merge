@@ -1,14 +1,13 @@
 # logic/openai_merger.py
 
+import openai
 import os
 from dotenv import load_dotenv
-from openai import OpenAI
 
-# Load environment variables
 load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
-def merge_messages_with_audit(message_chain_text: str) -> str:
+def merge_messages_with_audit(message_chain_text):
     """
     Merges MT700/707/799 messages into a final MT700 with audit using GPT-4o.
     """
@@ -16,7 +15,7 @@ def merge_messages_with_audit(message_chain_text: str) -> str:
         print("[merge] Starting GPT-4o call...")
         print(f"[merge] Prompt length: {len(message_chain_text)}")
 
-        response = client.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model="gpt-4o",
             messages=[
                 {
@@ -29,19 +28,20 @@ def merge_messages_with_audit(message_chain_text: str) -> str:
                 }
             ],
             temperature=0.3,
-            max_tokens=3500
+            max_tokens=3500,
+            timeout=30
         )
 
         print("[merge] GPT-4o response received.")
-        return response.choices[0].message.content
+        return response['choices'][0]['message']['content']
 
     except Exception as e:
         print(f"[merge] Error: {str(e)}")
         return f"❌ Error during merge: {str(e)}"
 
-def build_merge_prompt(message_chain_text: str) -> str:
+def build_merge_prompt(message_chain_text):
     """
-    Builds a strict prompt to get raw MT700 and audit trail output.
+    Builds a strict, no-intro prompt to get only raw MT700 and audit trail output.
     """
     return f"""
 You are a SWIFT LC specialist.
